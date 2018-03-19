@@ -5,149 +5,160 @@ import time
 import heapq
 
 UB = {"t0":0.5,"t1":1,"t2":2,"t3":3,"t4":4} #upper bound of term's value
-MAX_RESULT_NUM = 3 #max result number 
+LAST_ID = 200000000 # a large number, larger than all the doc id in the inverted index
+THETA = 2 # theta, minimun relevence to calculate the doc
+TOPN = 3 #max result number 
+
 
 class WAND:
-    #initial index
-    def __init__(self, InvertIndex, last_docid):
+    def __init__(self, InvertIndex):
+        """init inverted index and necessary variable"""
         self.result_list = [] #result list
-        self.invert_index = InvertIndex #InvertIndex: term -> docid1, docid2, docid3 ...
+        self.inverted_index = InvertIndex #InvertIndex: term -> docid1, docid2, docid3 ...
         self.current_doc = 0
-        self.current_invert_index = {} #posting
+        self.current_inverted_index = {} #posting
         self.query_terms = []
-        self.threshold = -1
+        self.threshold = THETA
         self.sort_terms = []
-        self.LastID = 2000000000 #big num
-        self.last_docid = last_docid
-    
-    #get index list according to query term
-    def __InitQuery(self, query_terms):
-        self.current_doc = -1
-        self.current_invert_index.clear()
-        self.query_terms = query_terms
-        self.sort_terms[:] = []
+        self.LastID = LAST_ID 
+
+
+    def __init_query(self, query_terms):
+        """init variable with query"""
+        self.current_doc = 0
+        self.current_inverted_index = {}
+        self.query_terms = []
+        self.sort_terms = []
         
         for term in query_terms:
-            #initial start pos from the first position of term's invert_index
-            self.current_invert_index[term] = [ self.invert_index[term][0], 0 ] #[ docid, index ]
-    
-    #sort term according its current posting doc id
-    def __SortTerms(self):
-        if len(self.sort_terms) == 0:
-            for term in self.query_terms:
-                if term in self.current_invert_index:
-                    doc_id = self.current_invert_index[term][0]
-                    self.sort_terms.append([ int(doc_id), term ])
-        self.sort_terms.sort()
+            if term in self.inverted_index:  # terms may not appear in inverted_index
+                doc_id = self.inverted_index[term][0]
+                self.query_terms.append(term)
+                self.current_inverted_index[term] = [doc_id, 0] #[ docid, index ]
+                self.sort_terms.append([doc_id, term])
 
-    #select the first term in sorted term list
-    def __PickTerm(self, pivot_index):
+   
+    def __pick_term(self, pivot_index):
+        """select the term before pivot_index in sorted term list
+         paper recommends returning the term with max idf, here we just return the firt term,
+         also return the index of the term instead of the term itself for speeding up"""
         return 0
 
-    #find pivot term
-    def __FindPivotTerm(self):
+
+    def __find_pivot_term(self):
+        """find pivot term"""
         score = 0
-        #print "sort term ", self.sort_terms  #[docid, term]
-        for i in range(0, len(self.sort_terms)):
-            score = score + UB[self.sort_terms[i][1]]
+        for i in range(len(self.sort_terms)):
+            score += UB[self.sort_terms[i][1]]
             if score >= self.threshold:
-                return [ self.sort_terms[i][1], i] #[term, index]
+                return [self.sort_terms[i][1], i] #[term, index]
+        return [None, len(self.sort_terms)]
 
-        return [ None, len(self.sort_terms)]
 
-    #move to doc id >= docid
-    def __IteratorInvertIndex(self, change_term, docid, pos):
-        doc_list = self.invert_index[change_term]
-        i = 0
+    def __iterator_invert_index(self, change_term, docid, pos):
+        """find the new_doc_id in the doc list of change_term such that new_doc_id >= docid,
+        if no new_doc_id satisfy, the self.LastID"""
+        doc_list = self.inverted_index[change_term]
+        new_doc_id, new_pos = self.LastID, len(doc_list)-1 # the case when new_doc_id not exists
         for i in range(pos, len(doc_list)):
             if doc_list[i] >= docid:
-                pos = i
-                docid = doc_list[i]
+                new_pos = i
+                new_doc_id = doc_list[i]
                 break
-
-        return [ docid, pos ]
+        return [new_doc_id, new_pos]
 
     
-    def __AdvanceTerm(self, change_index, docid ):
+    def __advance_term(self, change_index, doc_id ):
+        """change the first doc of term self.sort_terms[change_index] in the current inverted index
+        return whether the action succeed or not"""
         change_term = self.sort_terms[change_index][1]
-        pos = self.current_invert_index[change_term][1]
-        (new_doc, new_pos) = self.__IteratorInvertIndex(change_term, docid, pos)
-        
-        self.current_invert_index[change_term] = [ new_doc , new_pos ]
-        self.sort_terms[change_index][0] = new_doc
+        pos = self.current_inverted_index[change_term][1]
+        new_doc_id, new_pos = self.__iterator_invert_index(change_term, doc_id, pos)
+        if new_doc_id == self.LastID: # reach the end of the term in the inverted index
+            return False
+        else:
+            self.current_inverted_index[change_term] = [new_doc_id, new_pos]
+            self.sort_terms[change_index][0] = new_doc_id
+            return True
 
-    def __Next(self):
-        if self.last_docid == self.current_doc:
-            return None
-        
+    def __next(self):
         while True:
-            #sort terms by doc id
-            self.__SortTerms()
-            
+            self.sort_terms.sort() #sort terms by doc id
             #find pivot term > threshold
-            (pivot_term, pivot_index) = self.__FindPivotTerm()
-            if pivot_term == None:
-                #no more candidate
+            pivot_term, pivot_index = self.__find_pivot_term()
+            
+            if pivot_term == None: #no more candidate
                 return None
             
-            pivot_doc_id = self.current_invert_index[pivot_term][0]
+            pivot_doc_id = self.current_inverted_index[pivot_term][0]
             
-            if pivot_doc_id == self.LastID: #!!
+            if pivot_doc_id == self.LastID: # no more candidate
                 return None
             
             if pivot_doc_id <= self.current_doc:
-                change_index = self.__PickTerm(pivot_index)#always retrun 0
-                self.__AdvanceTerm( change_index, self.current_doc + 1 )
+                change_index = self.__pick_term(pivot_index) 
+                # __advance_term method may not succeed in all the previous terms
+                while change_index <= pivot_index and not self.__advance_term(change_index, self.current_doc + 1):
+                    del self.sort_terms[change_index] # remove the term that reaches its end
+                    pivot_index -= 1
+                    change_index = self.__pick_term(pivot_index)
             else:
-                first_docid = self.sort_terms[0][0]
-                if pivot_doc_id == first_docid:
+                first_doc_id = self.sort_terms[0][0]
+                if pivot_doc_id == first_doc_id:
                     self.current_doc = pivot_doc_id
-                    return self.current_doc
+                    return self.current_doc # return the doc for fully calculating
                 else:
-                    #pick all preceding term,advance to pivot
-                    for i in range(0, pivot_index):
-                        change_index = i
-                        self.__AdvanceTerm( change_index, pivot_doc_id )
+                    # pick all preceding term instead of just one, then advance all of them to pivot
+                    change_index = 0
+                    while change_index < pivot_index:
+                        if self.__advance_term(change_index, pivot_doc_id):
+                            change_index += 1
+                        else:
+                            del self.sort_terms[change_index] # remove the term that reaches its end
+                            pivot_index -= 1
+            # print(self.sort_terms, self.current_doc, pivot_doc_id)
 
-    def __InsertHeap(self,doc_id,score):
-        if len(self.result_list)<3:
+
+    def __insert_heap(self, doc_id, score):
+        if len(self.result_list) < TOPN:
             heapq.heappush(self.result_list, (score, doc_id))
         else:
-            if score>self.result_list[0][0]: #large than mini item in heap
-                heapq.heappop(self.result_list)
-                heapq.heappush(self.result_list, (score, doc_id))
-        return self.result_list[0][0]
+            heapq.heappushpop(self.result_list, (score, doc_id))
 
-    #full evaluate the doucment, get its full score, to be added
-    def __FullEvaluate(self, docid):
-        return 4
 
-    def DoQuery(self, query_terms):
-        self.__InitQuery(query_terms)
+    def __calculate_doc_relevence(self, docid):
+        """fully calculate relevence between doc and query"""
+        score = 0
+        for term in self.query_terms:
+            if docid in self.inverted_index[term]:
+                score += UB[term]
+        return score
+
+
+    def perform_query(self, query_terms):
+        self.__init_query(query_terms)
         while True:
-            candidate_docid = self.__Next()
+            candidate_docid = self.__next()
             if candidate_docid == None:
                 break
-            print "candidate_docid:" + str(candidate_docid)
             #insert candidate_docid to heap
-            full_doc_score = self.__FullEvaluate(candidate_docid)
-            mini_item_value = self.__InsertHeap(candidate_docid, full_doc_score)
-            #update threshold
-            self.threshold = mini_item_value
-            print "result list ", self.result_list
+            print('candidata doc', candidate_docid)
+            full_doc_score = self.__calculate_doc_relevence(candidate_docid)
+            self.__insert_heap(candidate_docid, full_doc_score)
+            print("result list ", self.result_list)
         return self.result_list
+
 
 if __name__ == "__main__":
     testIndex = {}
-    testIndex["t0"] = [ 1, 3, 26, 2000000000]
-    testIndex["t1"] = [ 1, 2, 4, 10, 100, 2000000000 ]
-    testIndex["t2"] = [ 2, 3, 6, 34, 56, 2000000000 ]
-    testIndex["t3"] = [ 1, 4, 5, 23, 70, 200, 2000000000 ]
-    testIndex["t4"] = [ 5, 14, 78, 2000000000 ]
+    testIndex["t0"] = [1, 3, 26, LAST_ID]
+    testIndex["t1"] = [1, 2, 4, 10, 100, LAST_ID]
+    testIndex["t2"] = [2, 3, 6, 34, 56, LAST_ID]
+    testIndex["t3"] = [1, 4, 5, 23, 70, 200, LAST_ID]
+    testIndex["t4"] = [5, 14, 78, LAST_ID]
     
-    last_doc_id = 100
-    w = WAND(testIndex, last_doc_id)
-    final_result = w.DoQuery(["t0", "t1", "t2", "t3", "t4"])
-    print "final result "
+    w = WAND(testIndex)
+    final_result = w.perform_query(["t0", "t1", "t2", "t3", "t4"])
+    print("=================final result=======================")
     for item in final_result:
-        print "doc " + str(item[1])
+        print("doc " + str(item[1]))
