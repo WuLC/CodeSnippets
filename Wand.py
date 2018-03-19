@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
-# Wand algorithm for searching
+# Created on Mon Mar 18 2018 15:39:50
+# Author: WuLC
+# EMail: liangchaowu5@gmail.com
 
-import time
+####################################################
+# Wand(Weak and) algorithm for searching query-related document
+#####################################################
+
 import heapq
 
 UB = {"t0":0.5,"t1":1,"t2":2,"t3":3,"t4":4} #upper bound of term's value
