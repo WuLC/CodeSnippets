@@ -5,8 +5,8 @@ import time
 import heapq
 
 UB = {"t0":0.5,"t1":1,"t2":2,"t3":3,"t4":4} #upper bound of term's value
-LAST_ID = 200000000 # a large number, larger than all the doc id in the inverted index
-THETA = 2 # theta, minimun relevence to calculate the doc
+LAST_ID = 999999999999 # a large number, larger than all the doc id in the inverted index
+THETA = 2 # theta, threshold for chechking whether to calculate the relevence between query and doc
 TOPN = 3 #max result number 
 
 
@@ -18,9 +18,9 @@ class WAND:
         self.current_doc = 0
         self.current_inverted_index = {} #posting
         self.query_terms = []
-        self.threshold = THETA
         self.sort_terms = []
-        self.LastID = LAST_ID 
+        self.threshold = THETA
+        self.last_id = LAST_ID
 
 
     def __init_query(self, query_terms):
@@ -57,11 +57,11 @@ class WAND:
 
     def __iterator_invert_index(self, change_term, docid, pos):
         """find the new_doc_id in the doc list of change_term such that new_doc_id >= docid,
-        if no new_doc_id satisfy, the self.LastID"""
+        if no new_doc_id satisfy, the self.last_id"""
         doc_list = self.inverted_index[change_term]
-        new_doc_id, new_pos = self.LastID, len(doc_list)-1 # the case when new_doc_id not exists
+        # new_doc_id, new_pos = self.last_id, len(doc_list)-1 # the case when new_doc_id not exists
         for i in range(pos, len(doc_list)):
-            if doc_list[i] >= docid:
+            if doc_list[i] >= docid:   # since doc_list contains self.last_id, this inequation will always be satisfied
                 new_pos = i
                 new_doc_id = doc_list[i]
                 break
@@ -74,34 +74,26 @@ class WAND:
         change_term = self.sort_terms[change_index][1]
         pos = self.current_inverted_index[change_term][1]
         new_doc_id, new_pos = self.__iterator_invert_index(change_term, doc_id, pos)
-        if new_doc_id == self.LastID: # reach the end of the term in the inverted index
-            return False
-        else:
-            self.current_inverted_index[change_term] = [new_doc_id, new_pos]
-            self.sort_terms[change_index][0] = new_doc_id
-            return True
+        self.current_inverted_index[change_term] = [new_doc_id, new_pos]
+        self.sort_terms[change_index][0] = new_doc_id
 
     def __next(self):
         while True:
             self.sort_terms.sort() #sort terms by doc id
-            #find pivot term > threshold
-            pivot_term, pivot_index = self.__find_pivot_term()
+            
+            pivot_term, pivot_index = self.__find_pivot_term() #find pivot term > threshold
             
             if pivot_term == None: #no more candidate
                 return None
             
             pivot_doc_id = self.current_inverted_index[pivot_term][0]
             
-            if pivot_doc_id == self.LastID: # no more candidate
+            if pivot_doc_id == self.last_id: # no more candidate
                 return None
             
             if pivot_doc_id <= self.current_doc:
-                change_index = self.__pick_term(pivot_index) 
-                # __advance_term method may not succeed in all the previous terms
-                while change_index <= pivot_index and not self.__advance_term(change_index, self.current_doc + 1):
-                    del self.sort_terms[change_index] # remove the term that reaches its end
-                    pivot_index -= 1
-                    change_index = self.__pick_term(pivot_index)
+                change_index = self.__pick_term(pivot_index)
+                self.__advance_term(change_index, self.current_doc + 1)
             else:
                 first_doc_id = self.sort_terms[0][0]
                 if pivot_doc_id == first_doc_id:
@@ -111,11 +103,8 @@ class WAND:
                     # pick all preceding term instead of just one, then advance all of them to pivot
                     change_index = 0
                     while change_index < pivot_index:
-                        if self.__advance_term(change_index, pivot_doc_id):
-                            change_index += 1
-                        else:
-                            del self.sort_terms[change_index] # remove the term that reaches its end
-                            pivot_index -= 1
+                        self.__advance_term(change_index, pivot_doc_id)
+                        change_index += 1
             # print(self.sort_terms, self.current_doc, pivot_doc_id)
 
 
@@ -160,5 +149,5 @@ if __name__ == "__main__":
     w = WAND(testIndex)
     final_result = w.perform_query(["t0", "t1", "t2", "t3", "t4"])
     print("=================final result=======================")
-    for item in final_result:
-        print("doc " + str(item[1]))
+    for i in reversed(range(len(final_result))):
+        print("doc {0}, relevence score {1}".format(final_result[i][1], final_result[i][0]))
