@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-# @Author: LC
-# @Date:   2016-09-30 20:02:20
-# @Last modified by:   WuLC
-# @Last Modified time: 2016-10-14 12:00:50
-# @Email: liangchaowu5@gmail.com
+# Created on Fri Mar 30 2017 15:14:3
+# Author: WuLC
+# EMail: liangchaowu5@gmail.com
 
 ###################################################
 # build a simple http server 
+# run under python2.7
 ##################################################
 
 import os
