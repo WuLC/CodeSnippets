@@ -3,9 +3,10 @@
 # Author: WuLC
 # EMail: liangchaowu5@gmail.com
 
-####################################################
+###############################################################
 # Wand(Weak and) algorithm for searching query-related document
-#####################################################
+# more details can be obtained from https://tinyurl.com/ya6cglyy
+###############################################################
 
 import heapq
 
