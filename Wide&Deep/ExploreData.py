@@ -12,9 +12,10 @@ import numpy as np
 from sklearn import preprocessing
 from sklearn.feature_extraction import FeatureHasher
 
+DATA_DIR = '/mnt/e/dataset/criteo/'
 
 def pos_neg_count():
-    train_file = './train.txt'
+    train_file = DATA_DIR + 'train.txt'
     train_samples = 1200000 # 4500000  # 3000000 # 150000
     val_samples = 160000    # 600000     # 400000  # 20000
     pos_count, neg_count = 0, 0
@@ -36,7 +37,7 @@ def pos_neg_count():
     # 1000000   254949 745052     0.2549487450512549
 
 
-def hash_size_of_cate_feature(train_file, val_file, max_hash_size):
+def hash_size_of_cate_feature(train_file, val_file, max_hash_size = 1000000):
     cate_set = [set() for _ in range(26)]
     with open(train_file, mode='r', encoding='utf8') as rf:
         for line in rf:
@@ -67,9 +68,9 @@ def generate_smaller_training_file():
     train_samples = 1200000 # 4500000  # 3000000 # 150000
     val_samples = 160000    # 600000     # 400000  # 20000
     count = 0
-    train_file = './train.txt'
-    sub_train_file = './sub_train_{0}.txt'.format(train_samples)
-    sub_val_file = './sub_val_{0}.txt'.format(val_samples)
+    train_file = DATA_DIR + 'train.txt'
+    sub_train_file = DATA_DIR + 'sub_train_{0}.txt'.format(train_samples)
+    sub_val_file = DATA_DIR + 'sub_val_{0}.txt'.format(val_samples)
     with open(train_file, encoding='utf8', mode='r') as rf:
         with open(sub_train_file, encoding='utf8', mode='w') as twf:
             with open(sub_val_file, encoding='utf8', mode='w') as vwf:
@@ -95,11 +96,11 @@ def remove_label(src_file, target_file):
 def generate_data_for_fm():
     train_samples = 1200000 # 4500000  # 3000000 # 150000
     val_samples = 160000    # 600000     # 400000  # 20000
-    sub_train_file = './fm_sub_train_{0}.txt'.format(train_samples)
-    sub_val_file = './fm_sub_val_{0}.txt'.format(val_samples)
-    no_label_sub_train_file = '/mnt/e/dataset/criteo/fm_sub_train_{0}_no_label.txt'.format(train_samples)
-    train_file = '/mnt/e/dataset/criteo/sub_train_{0}.txt'.format(train_samples)
-    val_file = '/mnt/e/dataset/criteo/sub_val_{0}.txt'.format(val_samples)
+    sub_train_file = DATA_DIR + 'fm_sub_train_{0}.txt'.format(train_samples)
+    sub_val_file = DATA_DIR + 'fm_sub_val_{0}.txt'.format(val_samples)
+    no_label_sub_train_file = DATA_DIR + 'fm_sub_train_{0}_no_label.txt'.format(train_samples)
+    train_file = DATA_DIR + 'sub_train_{0}.txt'.format(train_samples)
+    val_file = DATA_DIR + 'sub_val_{0}.txt'.format(val_samples)
     hash_size = hash_size_of_cate_feature(train_file, val_file, max_hash_size = 1000000)
     print('total hash size {0}'.format(sum(hash_size)))
     def transform(src_file, des_file):
@@ -153,11 +154,11 @@ def generate_data_for_fm():
 def generate_data_for_ffm():
     train_samples = 4500000   #3000000 #150000
     val_samples = 600000 #400000 # 20000   
-    sub_train_file = './ffm_sub_train_{0}.txt'.format(train_samples)
-    sub_val_file = './ffm_sub_val_{0}.txt'.format(val_samples)
-    no_label_sub_train_file = './ffm_sub_train_{0}_no_label.txt'.format(train_samples)
-    train_file = '/mnt/e/dataset/criteo/sub_train_{0}.txt'.format(train_samples)
-    val_file = '/mnt/e/dataset/criteo/sub_val_{0}.txt'.format(val_samples)
+    sub_train_file = DATA_DIR + 'ffm_sub_train_{0}.txt'.format(train_samples)
+    sub_val_file = DATA_DIR + 'ffm_sub_val_{0}.txt'.format(val_samples)
+    no_label_sub_train_file = DATA_DIR + 'ffm_sub_train_{0}_no_label.txt'.format(train_samples)
+    train_file = DATA_DIR + 'sub_train_{0}.txt'.format(train_samples)
+    val_file = DATA_DIR + 'sub_val_{0}.txt'.format(val_samples)
     hash_size = hash_size_of_cate_feature(train_file, val_file)
 
     def transform(src_file, des_file):
