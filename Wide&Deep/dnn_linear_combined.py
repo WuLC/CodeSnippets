@@ -434,11 +434,13 @@ class DNNLinearCombinedClassifier(estimator.Estimator):
         raise ValueError("logits and labels must have the same shape (%s vs %s)" %
                         (logits.get_shape(), labels.get_shape()))
       shape = [CONF.batch_size, 1]
-      C = array_ops.constant(1, dtype = 'float32',shape = shape)
+      c = 1
+      C = array_ops.constant(c, dtype = 'float32',shape = shape)
       zeros = array_ops.zeros_like(logits, dtype=logits.dtype)
       cond = (logits >= zeros)
       relu_logits = array_ops.where(cond, logits, zeros)
       neg_abs_logits = array_ops.where(cond, -logits, logits)
+      # e^{cy}*log_loss, y is label
       return math_ops.exp(labels * C) * math_ops.add(relu_logits - logits * labels, 
                                                       math_ops.log1p(math_ops.exp(neg_abs_logits)))
     
