@@ -321,6 +321,11 @@ def run_wide_deep():
                                                                     train_auc[-1],
                                                                     val_auc[-1])
             write_log(title, content)
+            # multiply auc and log loss by 100 to visulize it better in visdom
+            train_loss[-1] *= 100
+            val_loss[-1] *= 100
+            train_auc[-1] *= 100
+            val_auc[-1] *= 100
             x_epoch = [start_epoch+i*CONF.epochs_between_evals for i in range(1, n+2)]
             t_auc = dict(x=x_epoch, y=train_auc, type='custom', name='train_auc')
             v_auc = dict(x=x_epoch, y=val_auc, type='custom', name='val_auc')
@@ -329,7 +334,7 @@ def run_wide_deep():
             layout=dict(title=title, xaxis={'title':'epochs'}, yaxis={'title':'LogLoss_AUC'})
             data = [t_loss, v_loss, t_auc, v_auc]
             vis._send({'data':data, 'layout':layout, 'win':title})
-            vis.scatter
+
 
         # Display evaluation metrics
         # tf.logging.info('Results at epoch %d / %d',
