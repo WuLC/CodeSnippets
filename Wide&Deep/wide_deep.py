@@ -120,7 +120,7 @@ def build_model_columns():
             crossed_columns.append(tf.feature_column.crossed_column(['d{0}'.format(i), 'd{0}'.format(j)], hash_bucket_size=max(hash_size[i], hash_size[j])))
     
     # Wide columns and deep columns.
-    wide_columns = categorical_columns# + crossed_columns
+    wide_columns = categorical_columns # + crossed_columns
     deep_columns = continous_columns
     if CONF.use_fm_vector:
         print('################### initialize embedding layer with FM latent vector ####################')
@@ -178,6 +178,7 @@ def build_estimator():
                 dnn_feature_columns=deep_columns,
                 dnn_hidden_units=CONF.hidden_units,
                 dnn_optimizer=deep_optimizer,
+                dnn_dropout=CONF.drop_out,
                 config=run_config)
     else:
         print('Error: unrecognized model type: {0}'.format(CONF.model_type))
@@ -273,7 +274,6 @@ def run_wide_deep():
         assert len(train_labels) == CONF.num_train and len(val_labels) == CONF.num_val, 'number of labels and samples not equal'
         return train_labels, val_labels
     
-
     def write_log(title, content):
         file_path = './logs/{0}.log'.format(title)
         if not os.path.exists(file_path):
@@ -302,7 +302,7 @@ def run_wide_deep():
             val_loss.append(metrics.log_loss(val_labels, val_predict_prob))
             val_auc.append(calculate_auc(val_labels, val_predict_prob))
             
-            title = '{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}L1_{9}L2_FMEmbedding({10})_{11}'.format(
+            title = '{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}dropout_{9}L1_{10}L2_FMEmbedding({11})_{12}'.format(
                     CONF.num_train,
                     CONF.num_val,
                     CONF.epochs,
@@ -311,6 +311,7 @@ def run_wide_deep():
                     CONF.max_hash_size,
                     CONF.embedding_size,
                     CONF.hidden_units,
+                    CONF.drop_out,
                     CONF.l1_regularization_strength,
                     CONF.l2_regularization_strength,
                     CONF.use_fm_vector,
@@ -321,11 +322,7 @@ def run_wide_deep():
                                                                     train_auc[-1],
                                                                     val_auc[-1])
             write_log(title, content)
-            # multiply auc and log loss by 100 to visulize it better in visdom
-            train_loss[-1] *= 100
-            val_loss[-1] *= 100
-            train_auc[-1] *= 100
-            val_auc[-1] *= 100
+
             x_epoch = [start_epoch+i*CONF.epochs_between_evals for i in range(1, n+2)]
             t_auc = dict(x=x_epoch, y=train_auc, type='custom', name='train_auc')
             v_auc = dict(x=x_epoch, y=val_auc, type='custom', name='val_auc')
