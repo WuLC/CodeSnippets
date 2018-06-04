@@ -36,8 +36,8 @@ class Configuration:
 
         # model parameters
         self.model_type = 'wdl' # 'wide', 'deep' or 'wdl'
-        self.use_fm_vector = False
+        self.use_fm_vector = False  # initialize embedding layer with latent vector obtained by FM
         self.hidden_units = [100, 75, 50, 25] # hidden units for deep part
         self.max_hash_size = 1000000
-        self.embedding_size = 12
-        self.loss_fn = 'weighted_log_loss' # weighted_log_loss, log_loss, focal_loss
+        self.embedding_size = 24
+        self.loss_fn = 'log_loss' # weighted_log_loss, log_loss, focal_loss
