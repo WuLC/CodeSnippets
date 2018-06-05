@@ -21,7 +21,7 @@ import os
 import sys
 import shutil
 import platform
-from time import gmtime, strftime
+from datetime import datetime
 
 import fire
 import visdom
@@ -123,8 +123,8 @@ def build_model_columns():
                                                                     hash_bucket_size=max(hash_size[i], hash_size[j])))
     
     # Wide columns and deep columns.
-    wide_columns = categorical_columns + continous_columns # + crossed_columns
-    deep_columns = [] #continous_columns
+    wide_columns = categorical_columns # + continous_columns + crossed_columns
+    deep_columns = continous_columns
     if CONF.use_fm_vector:
         print('################### initialize embedding layer with FM latent vector ####################')
         fm_embedding = load_fm_embedding()
@@ -181,10 +181,10 @@ def build_estimator():
         return  DNNLinearCombinedClassifier(
                 model_dir=CONF.model_dir,
                 linear_feature_columns=wide_columns,
-                linear_optimizer=wide_optimizer,
+                # linear_optimizer=wide_optimizer,
                 dnn_feature_columns=deep_columns,
                 dnn_hidden_units=CONF.hidden_units,
-                dnn_optimizer=deep_optimizer,
+                # dnn_optimizer=deep_optimizer,
                 dnn_dropout=CONF.drop_out,
                 config=run_config)
     else:
@@ -282,7 +282,10 @@ def run_wide_deep():
         return train_labels, val_labels
     
     def write_log(title, content):
-        file_path = './logs/{0}.log'.format(title)
+        log_dir = './logs/'
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        file_path = log_dir + '{0}.log'.format(title)
         if not os.path.exists(file_path):
             with open(file_path, mode = 'w', encoding = 'utf8') as wf:
                 wf.write('\ttrain_log_loss\tval_log_loss\ttrain_auc\tval_auc\n')
@@ -303,35 +306,34 @@ def run_wide_deep():
         train_predict_prob = [p['logistic'][0] for p in model.predict(input_fn=eval_train_input_fn)]
         val_predict_prob = [p['logistic'][0] for p in model.predict(input_fn=eval_val_input_fn)]
 
+        train_loss.append(metrics.log_loss(train_labels, train_predict_prob))
+        train_auc.append(calculate_auc(train_labels, train_predict_prob))
+        val_loss.append(metrics.log_loss(val_labels, val_predict_prob))
+        val_auc.append(calculate_auc(val_labels, val_predict_prob))
+        
+        title = '{13}_{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}dropout_{9}L1_{10}L2_FMEmbedding({11})_{12}'.format(
+                CONF.num_train,
+                CONF.num_val,
+                CONF.epochs,
+                CONF.batch_size,
+                CONF.learning_rate,
+                CONF.max_hash_size,
+                CONF.embedding_size,
+                CONF.hidden_units,
+                CONF.drop_out,
+                CONF.l1_regularization_strength,
+                CONF.l2_regularization_strength,
+                CONF.use_fm_vector,
+                CONF.loss_fn,
+                CONF.model_type)
+        content = '[{0}]Epoch {1} :{2}\t {3}\t {4}\t {5}\n'.format(str(datetime.now()).split('.')[0],
+                                                                    start_epoch+(n+1)*CONF.epochs_between_evals,
+                                                                    train_loss[-1],
+                                                                    val_loss[-1],
+                                                                    train_auc[-1],
+                                                                    val_auc[-1])
+        write_log(title, content)
         if CONF.visualize:
-            train_loss.append(metrics.log_loss(train_labels, train_predict_prob))
-            train_auc.append(calculate_auc(train_labels, train_predict_prob))
-            val_loss.append(metrics.log_loss(val_labels, val_predict_prob))
-            val_auc.append(calculate_auc(val_labels, val_predict_prob))
-            
-            title = '{13}_{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}dropout_{9}L1_{10}L2_FMEmbedding({11})_{12}'.format(
-                    CONF.num_train,
-                    CONF.num_val,
-                    CONF.epochs,
-                    CONF.batch_size,
-                    CONF.learning_rate,
-                    CONF.max_hash_size,
-                    CONF.embedding_size,
-                    CONF.hidden_units,
-                    CONF.drop_out,
-                    CONF.l1_regularization_strength,
-                    CONF.l2_regularization_strength,
-                    CONF.use_fm_vector,
-                    CONF.loss_fn,
-                    CONF.model_type)
-            content = '[{0}]Epoch {1} :{2}\t {3}\t {4}\t {5}\n'.format(strftime("%m-%d %H:%M", gmtime()),
-                                                                       start_epoch+(n+1)*CONF.epochs_between_evals,
-                                                                       train_loss[-1],
-                                                                       val_loss[-1],
-                                                                       train_auc[-1],
-                                                                       val_auc[-1])
-            write_log(title, content)
-
             x_epoch = [start_epoch+i*CONF.epochs_between_evals for i in range(1, n+2)]
             t_auc = dict(x=x_epoch, y=train_auc, type='custom', name='train_auc')
             v_auc = dict(x=x_epoch, y=val_auc, type='custom', name='val_auc')
