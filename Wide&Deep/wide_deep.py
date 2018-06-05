@@ -21,6 +21,7 @@ import os
 import sys
 import shutil
 import platform
+from time import gmtime, strftime
 
 import fire
 import visdom
@@ -114,14 +115,16 @@ def build_model_columns():
     for i in range(CONF.num_categorical_feature):
         categorical_columns.append(tf.feature_column.categorical_column_with_hash_bucket('d{0}'.format(i),
                                                             hash_bucket_size=hash_size[i]))
+    # crossed-categorical columns
     crossed_columns = []
     for i in range(CONF.num_categorical_feature):
         for j in range(i+1, CONF.num_categorical_feature):
-            crossed_columns.append(tf.feature_column.crossed_column(['d{0}'.format(i), 'd{0}'.format(j)], hash_bucket_size=max(hash_size[i], hash_size[j])))
+            crossed_columns.append(tf.feature_column.crossed_column(['d{0}'.format(i), 'd{0}'.format(j)], 
+                                                                    hash_bucket_size=max(hash_size[i], hash_size[j])))
     
     # Wide columns and deep columns.
-    wide_columns = categorical_columns + continous_columns# + crossed_columns
-    deep_columns = continous_columns
+    wide_columns = categorical_columns + continous_columns # + crossed_columns
+    deep_columns = [] #continous_columns
     if CONF.use_fm_vector:
         print('################### initialize embedding layer with FM latent vector ####################')
         fm_embedding = load_fm_embedding()
@@ -132,7 +135,8 @@ def build_model_columns():
                                                                    initializer=tf.constant_initializer(fm_embedding[curr : curr + hash_size[i]])))
             curr += hash_size[i]
     else:
-        deep_columns += [tf.feature_column.embedding_column(feature, dimension = CONF.embedding_size) for feature in categorical_columns]# + crossed_columns]
+        deep_columns += [tf.feature_column.embedding_column(feature, dimension = CONF.embedding_size) 
+                                for feature in categorical_columns]# + crossed_columns]
     return wide_columns, deep_columns
     # # Transformations.
     # age_buckets = tf.feature_column.bucketized_column(
@@ -162,12 +166,15 @@ def build_estimator():
         return tf.estimator.LinearClassifier(
                 model_dir=CONF.model_dir,
                 feature_columns=wide_columns,
+                optimizer=wide_optimizer,
                 config=run_config)
     elif CONF.model_type == 'deep':
         return tf.estimator.DNNClassifier(
                 model_dir=CONF.model_dir,
                 feature_columns=deep_columns,
                 hidden_units=CONF.hidden_units,
+                # optimizer=deep_optimizer, # custom optimizer may not lead to good result
+                dropout=CONF.drop_out,
                 config=run_config)
     elif CONF.model_type == 'wdl':
         #return tf.estimator.DNNLinearCombinedClassifier(
@@ -238,7 +245,7 @@ def run_wide_deep():
     """Run Wide-Deep training and eval loop."""
 
     # Clean up the model directory if present
-    # shutil.rmtree(CONF.model_dir, ignore_errors=True)
+    shutil.rmtree(CONF.model_dir, ignore_errors=True)
     
     model = build_estimator()
     global_step = 0
@@ -317,11 +324,12 @@ def run_wide_deep():
                     CONF.use_fm_vector,
                     CONF.loss_fn,
                     CONF.model_type)
-            content = 'Epoch {0} :{1}\t {2}\t {3}\t {4}\n'.format(start_epoch+(n+1)*CONF.epochs_between_evals,
-                                                                    train_loss[-1],
-                                                                    val_loss[-1],
-                                                                    train_auc[-1],
-                                                                    val_auc[-1])
+            content = '[{0}]Epoch {1} :{2}\t {3}\t {4}\t {5}\n'.format(strftime("%m-%d %H:%M", gmtime()),
+                                                                       start_epoch+(n+1)*CONF.epochs_between_evals,
+                                                                       train_loss[-1],
+                                                                       val_loss[-1],
+                                                                       train_auc[-1],
+                                                                       val_auc[-1])
             write_log(title, content)
 
             x_epoch = [start_epoch+i*CONF.epochs_between_evals for i in range(1, n+2)]
