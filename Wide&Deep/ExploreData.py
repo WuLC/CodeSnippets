@@ -64,25 +64,54 @@ def hash_size_of_cate_feature(train_file, val_file, max_hash_size = 1000000):
     """
 
 
-def generate_smaller_training_file():
+def generate_smaller_training_file(normalize_continous_value = True):
     train_samples = 1200000 # 4500000  # 3000000 # 150000
     val_samples = 160000    # 600000     # 400000  # 20000
     count = 0
     train_file = DATA_DIR + 'train.txt'
     sub_train_file = DATA_DIR + 'sub_train_{0}.txt'.format(train_samples)
     sub_val_file = DATA_DIR + 'sub_val_{0}.txt'.format(val_samples)
+    
+    # min_max normalization for continous value
+    if normalize_continous_value:
+        continous_value = []
+        count = 0
+        with open(train_file, mode='r', encoding='utf8') as rf:
+            for line in rf:
+                count += 1
+                if count > train_samples + val_samples:
+                    break
+                blocks = line.rstrip('\n').split('\t')
+                tmp = []
+                for i in range(1, 14):
+                    if len(blocks[i]) > 0:
+                        tmp.append(float(blocks[i]))
+                    else:
+                        tmp.append(0)
+                continous_value.append(tmp)
+        min_max_scaler = preprocessing.MinMaxScaler()
+        continous_scaled = min_max_scaler.fit_transform(np.array(continous_value))
+        print('===========finish min-max scaling=============')
+
+    count = 0
     with open(train_file, encoding='utf8', mode='r') as rf:
         with open(sub_train_file, encoding='utf8', mode='w') as twf:
             with open(sub_val_file, encoding='utf8', mode='w') as vwf:
                 for line in rf:
                     count += 1
-                    blocks = line.rstrip('\n').split('\t')
-                    if count <= train_samples:
-                        twf.write(','.join(blocks)+'\n')
-                    elif count <= train_samples + val_samples:
-                        vwf.write(','.join(blocks)+'\n')
-                    else:
+                    if count > train_samples + val_samples:
                         break
+                    blocks = line.rstrip('\n').split('\t')
+                    if normalize_continous_value:
+                        content = ','.join(blocks[:1]+ 
+                                           list(map(lambda x:str(x), continous_scaled[count-1]))+
+                                           blocks[14:])+'\n'
+                    else:
+                        content = ','.join(blocks)+'\n'
+                    if count <= train_samples:
+                        twf.write(content)
+                    elif count <= train_samples + val_samples:
+                        vwf.write(content)
 
 
 def remove_label(src_file, target_file):
