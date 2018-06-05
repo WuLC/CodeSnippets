@@ -1,5 +1,8 @@
 import os
 import platform
+import warnings
+import fire
+
 class Configuration:
     """A class that stores variables specified by user"""
     def __init__(self):
@@ -26,7 +29,7 @@ class Configuration:
         self.test_file = ''
         
         # training parameters
-        self.epochs = 200
+        self.epochs = 30
         self.batch_size = 12
         self.epochs_between_evals = 2
         self.learning_rate = 0.01
@@ -35,10 +38,35 @@ class Configuration:
         self.num_readers = 5
 
         # model parameters
-        self.model_type = 'wide' # 'wide', 'deep' or 'wdl'
+        self.model_type = 'wdl' # 'wide', 'deep' or 'wdl'
         self.use_fm_vector = False  # initialize embedding layer with latent vector obtained by FM
         self.hidden_units = [100, 75, 50, 25] # hidden units for deep part
         self.max_hash_size = 1000000
         self.embedding_size = 12
         self.loss_fn = 'log_loss' # weighted_log_loss, log_loss, focal_loss
         self.drop_out = 0.0 # drop_out_rate
+    
+
+    def parse(self, kwargs):
+        '''update parameters in terms of kwargs'''
+        for k,v in kwargs.items():
+            if not hasattr(self, k):
+                warnings.warn("Warning: opt has not attribut %s" %k)
+            setattr(self,k,v)
+        
+        
+        print('='*20 + 'Configuration' + '='*20)
+        for k in sorted(self.__dir__()):
+            if not k.startswith('__'):
+                print('{0} = {1}'.format(k, getattr(self, k)))
+        print('='*60)
+
+
+def main(**kwargs):
+    CONF = Configuration()
+    CONF.parse(kwargs)
+    # use command like:
+    # python Configuration.py main --loss_fn focal_loss
+
+if __name__ == '__main__':
+    fire.Fire()
