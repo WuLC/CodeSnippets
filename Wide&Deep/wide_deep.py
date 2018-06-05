@@ -241,9 +241,11 @@ def export_model(model, model_type, export_dir):
     model.export_savedmodel(export_dir, example_input_fn)
 
 
-def run_wide_deep():
+def run_wide_deep(**kwargs):
     """Run Wide-Deep training and eval loop."""
-
+    # parse user configuration from command line
+    CONF.parse(kwargs)
+    
     # Clean up the model directory if present
     shutil.rmtree(CONF.model_dir, ignore_errors=True)
     
