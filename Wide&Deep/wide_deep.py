@@ -51,7 +51,7 @@ elif CONF.dataset == 'avazu':
                     'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21'
                    ]
 
-_CSV_COLUMN_DEFAULTS = [[0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0],
+_CSV_COLUMN_DEFAULTS = [[0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0],
                         ['missed'], ['missed'], ['missed'], ['missed'], ['missed'], ['missed'], 
                         ['missed'], ['missed'], ['missed'], ['missed'], ['missed'], ['missed'],
                         ['missed'], ['missed'], ['missed'], ['missed'], ['missed'], ['missed'],
@@ -120,7 +120,7 @@ def build_model_columns():
             crossed_columns.append(tf.feature_column.crossed_column(['d{0}'.format(i), 'd{0}'.format(j)], hash_bucket_size=max(hash_size[i], hash_size[j])))
     
     # Wide columns and deep columns.
-    wide_columns = categorical_columns # + crossed_columns
+    wide_columns = categorical_columns + continous_columns# + crossed_columns
     deep_columns = continous_columns
     if CONF.use_fm_vector:
         print('################### initialize embedding layer with FM latent vector ####################')
@@ -302,7 +302,7 @@ def run_wide_deep():
             val_loss.append(metrics.log_loss(val_labels, val_predict_prob))
             val_auc.append(calculate_auc(val_labels, val_predict_prob))
             
-            title = '{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}dropout_{9}L1_{10}L2_FMEmbedding({11})_{12}'.format(
+            title = '{13}_{0}train_{1}val_{2}epochs_{3}bs_{4}lr_{5}hs_{6}emb_{7}hidden_{8}dropout_{9}L1_{10}L2_FMEmbedding({11})_{12}'.format(
                     CONF.num_train,
                     CONF.num_val,
                     CONF.epochs,
@@ -315,7 +315,8 @@ def run_wide_deep():
                     CONF.l1_regularization_strength,
                     CONF.l2_regularization_strength,
                     CONF.use_fm_vector,
-                    CONF.loss_fn)
+                    CONF.loss_fn,
+                    CONF.model_type)
             content = 'Epoch {0} :{1}\t {2}\t {3}\t {4}\n'.format(start_epoch+(n+1)*CONF.epochs_between_evals,
                                                                     train_loss[-1],
                                                                     val_loss[-1],
