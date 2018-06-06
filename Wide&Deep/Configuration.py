@@ -14,8 +14,8 @@ class Configuration:
         self.env = self.dataset
 
         # data info
-        self.num_train = 1200000# 150000 # 3000000
-        self.num_val =   160000 # 20000   #400000
+        self.num_train = 1200000 # 150000 # 3000000
+        self.num_val =   160000  # 20000  # 400000
         if platform.system() == 'Linux':
             self.data_dir = '/mnt/e/dataset/{0}'.format(self.dataset)
             self.model_dir = '/mnt/e/{0}_saved_models'.format(self.num_train)
@@ -29,9 +29,11 @@ class Configuration:
         self.test_file = ''
         
         # training parameters
-        self.epochs = 30
+        self.epochs = 50
         self.batch_size = 12
         self.epochs_between_evals = 2
+        self.wide_optimizer = 'Ftrl'
+        self.deep_optimizer = 'Adagrad'
         self.learning_rate = 0.01
         self.l1_regularization_strength = 0.1
         self.l2_regularization_strength = 0.1
