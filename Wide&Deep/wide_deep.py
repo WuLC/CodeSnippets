@@ -181,10 +181,10 @@ def build_estimator():
         return  DNNLinearCombinedClassifier(
                 model_dir=CONF.model_dir,
                 linear_feature_columns=wide_columns,
-                # linear_optimizer=wide_optimizer,
+                linear_optimizer = CONF.wide_optimizer,
                 dnn_feature_columns=deep_columns,
-                dnn_hidden_units=CONF.hidden_units,
-                # dnn_optimizer=deep_optimizer,
+                dnn_hidden_units = CONF.hidden_units,
+                dnn_optimizer = CONF.deep_optimizer,
                 dnn_dropout=CONF.drop_out,
                 config=run_config)
     else:
@@ -245,7 +245,7 @@ def run_wide_deep(**kwargs):
     """Run Wide-Deep training and eval loop."""
     # parse user configuration from command line
     CONF.parse(kwargs)
-    
+
     # Clean up the model directory if present
     shutil.rmtree(CONF.model_dir, ignore_errors=True)
     
@@ -290,7 +290,10 @@ def run_wide_deep(**kwargs):
         file_path = log_dir + '{0}.log'.format(title)
         if not os.path.exists(file_path):
             with open(file_path, mode = 'w', encoding = 'utf8') as wf:
-                wf.write('\ttrain_log_loss\tval_log_loss\ttrain_auc\tval_auc\n')
+                wf.write('{0:>45} {1:^20} {2:^20} {3:^20}\n'.format('train_log_loss',
+                                                                    'val_log_loss',
+                                                                    'train_auc',
+                                                                    'val_auc'))
         with open(file_path, mode = 'a', encoding='utf8') as wf:
             wf.write(content)
         
@@ -301,6 +304,9 @@ def run_wide_deep(**kwargs):
     val_loss, val_auc = [], []
     train_labels, val_labels = get_label()
 
+    # change type to np.float64 to avoid nan in log loss
+    train_labels = np.array(train_labels, dtype = np.float64)
+    val_labels = np.array(val_labels, dtype = np.float64)
     for n in range(CONF.epochs // CONF.epochs_between_evals):
         model.train(input_fn=train_input_fn)
         # train_results = model.evaluate(input_fn=eval_train_input_fn)
@@ -308,6 +314,8 @@ def run_wide_deep(**kwargs):
         train_predict_prob = [p['logistic'][0] for p in model.predict(input_fn=eval_train_input_fn)]
         val_predict_prob = [p['logistic'][0] for p in model.predict(input_fn=eval_val_input_fn)]
 
+        train_predict_prob = np.array(train_predict_prob, dtype = np.float64)
+        val_predict_prob = np.array(val_predict_prob, dtype = np.float64)
         train_loss.append(metrics.log_loss(train_labels, train_predict_prob))
         train_auc.append(calculate_auc(train_labels, train_predict_prob))
         val_loss.append(metrics.log_loss(val_labels, val_predict_prob))
@@ -328,7 +336,8 @@ def run_wide_deep(**kwargs):
                 CONF.use_fm_vector,
                 CONF.loss_fn,
                 CONF.model_type)
-        content = '[{0}]Epoch {1} :{2}\t {3}\t {4}\t {5}\n'.format(str(datetime.now()).split('.')[0],
+        content = '[{0}]Epoch {1:>2}: {2:<20} {3:<20} {4:<20} {5:<20}\n'.format(
+                                                                    str(datetime.now()).split('.')[0],
                                                                     start_epoch+(n+1)*CONF.epochs_between_evals,
                                                                     train_loss[-1],
                                                                     val_loss[-1],
