@@ -64,7 +64,7 @@ def hash_size_of_cate_feature(train_file, val_file, max_hash_size = 1000000):
     """
 
 
-def generate_smaller_training_file(normalize_continous_value = True):
+def generate_smaller_training_file(normalize_continous_value = False):
     train_samples = 1200000 # 4500000  # 3000000 # 150000
     val_samples = 160000    # 600000     # 400000  # 20000
     count = 0
@@ -112,6 +112,69 @@ def generate_smaller_training_file(normalize_continous_value = True):
                         twf.write(content)
                     elif count <= train_samples + val_samples:
                         vwf.write(content)
+
+
+def generate_sampled_training_file(ratio = (1, 100)):
+    """resample data for testing, ratio if ratio of positve and negative samples"""
+    num_train = 1200000 # 4500000  # 3000000 # 150000
+    num_val = 160000    # 600000   # 400000 f # 20000
+    pos, neg = ratio
+    num_train_pos =  int(num_train * (pos*1.0/(pos+neg)))
+    num_train_neg =  num_train - num_train_pos
+    num_val_pos = int(num_val * (pos*1.0/(pos+neg)))
+    num_val_neg = num_val - num_val_pos
+    train_file = DATA_DIR + 'train.txt'
+    sub_train_file = DATA_DIR + '{0}_{1}_sampled_train_{2}.txt'.format(pos, neg, num_train)
+    sub_val_file = DATA_DIR + '{0}_{1}_sampled_val_{2}.txt'.format(pos, neg, num_val)
+    
+
+    # prepare train file
+    pos_count, neg_count = 0, 0
+    train_count = 0
+    with open(train_file, encoding='utf8', mode='r') as rf:
+        with open(sub_train_file, encoding='utf8', mode='w') as wf:
+                for line in rf:
+                    train_count += 1
+                    if line[0] == '0':
+                        neg_count += 1
+                        if neg_count <= num_train_neg:
+                            blocks = line.rstrip('\n').split('\t')
+                            wf.write(','.join(blocks)+'\n')
+                    elif line[0] == '1':
+                        pos_count += 1
+                        if pos_count <= num_train_pos:
+                            blocks = line.rstrip('\n').split('\t')
+                            wf.write(','.join(blocks)+'\n')                    
+                    else:
+                        print('unrecognized label {0}'.format(line[0]))
+                    if pos_count > num_train_pos and neg_count > num_train_neg:
+                        break
+
+    # prepare validation file
+    pos_count, neg_count = 0, 0
+    val_count = 0
+    with open(train_file, encoding='utf8', mode='r') as rf:
+        with open(sub_val_file, encoding='utf8', mode='w') as wf:
+                for line in rf:
+                    val_count += 1
+                    # skip data in that already in the training file
+                    if val_count <= train_count:
+                        continue
+                    if line[0] == '0':
+                        neg_count += 1
+                        if neg_count <= num_val_neg:
+                            blocks = line.rstrip('\n').split('\t')
+                            wf.write(','.join(blocks)+'\n')
+                    elif line[0] == '1':
+                        pos_count += 1
+                        if pos_count <= num_val_pos:
+                            blocks = line.rstrip('\n').split('\t')
+                            wf.write(','.join(blocks)+'\n')                    
+                    else:
+                        print('unrecognized label {0}'.format(line[0]))
+                    if pos_count > num_val_pos and neg_count > num_val_neg:
+                        break         
+                print(val_count)           
 
 
 def remove_label(src_file, target_file):
