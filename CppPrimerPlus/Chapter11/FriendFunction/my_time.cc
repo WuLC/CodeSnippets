@@ -1,5 +1,6 @@
-#include <iostream>
 #include "my_time.h"
+
+#include <iostream>
 
 Time::Time(int hour, int miniute) {
   hour_ = hour;
