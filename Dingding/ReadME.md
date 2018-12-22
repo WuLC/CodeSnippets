@@ -1,0 +1,1 @@
+手机钉钉自动打卡的 lua 脚本，依赖[触动精灵](http://www.touchsprite.com/)
