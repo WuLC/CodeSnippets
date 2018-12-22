@@ -1,3 +1,7 @@
+--Created on Sat Dec 22 2018 19:9:35
+--Author: WuLC
+--EMail: liangchaowu5@gmail.com
+
 require "TSLib"
 
 --解锁屏幕
