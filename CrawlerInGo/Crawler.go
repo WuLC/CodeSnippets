@@ -87,6 +87,46 @@ func CrawlParallelMutex(url string, fetcher fakeFetcher, record *Record) {
 	tasks.Wait()
 }
 
+//implementaion 3, parallel with channel
+func channelFetch(url string, fetcher *fakeFetcher, ch chan []string) {
+	body, urls, err := fetcher.Fetch(url)
+	if err != nil {
+		fmt.Println(err)
+		ch <- []string{}
+	} else {
+		fmt.Println("found:", url, body)
+		ch <- urls
+	}
+}
+
+func Controller(fetcher *fakeFetcher, ch chan []string) {
+	fetched := make(map[string]bool)
+	count := 1
+	for urls := range ch {
+		for _, url := range urls {
+			if _, ok := fetched[url]; ok {
+				continue
+			} else {
+				fetched[url] = true
+				count += 1
+				go channelFetch(url, fetcher, ch)
+			}
+		}
+		count -= 1
+		if count == 0 {
+			close(ch)
+		}
+	}
+}
+
+func CrawlParallelChannel(url string, fetcher *fakeFetcher) {
+	ch := make(chan []string)
+	go func() {
+		ch <- []string{url}
+	}()
+	Controller(fetcher, ch)
+}
+
 func main() {
 	var f = fakeFetcher{
 		"https://golang.org/": &fakeResult{
@@ -126,4 +166,7 @@ func main() {
 
 	fmt.Println("==========Parallel Crawler With Mutex=================")
 	CrawlParallelMutex("https://golang.org/", f, &Record{sync.Mutex{}, map[string]bool{}})
+
+	fmt.Println("==========Parallel Crawler With Channel=================")
+	CrawlParallelChannel("https://golang.org/", &f)
 }
