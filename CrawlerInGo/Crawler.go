@@ -54,22 +54,22 @@ type Record struct {
 	fetched map[string]bool
 }
 
-func (r *Record) Visited(url string) bool {
-	defer r.mutex.Unlock()
-	r.mutex.Lock()
-	if _, ok := r.fetched[url]; ok {
+func (record *Record) Visited(url string) bool {
+	defer record.mutex.Unlock()
+	record.mutex.Lock()
+	if _, ok := record.fetched[url]; ok {
 		return true
 	} else {
-		r.fetched[url] = true
+		record.fetched[url] = true
 		return false
 	}
 }
 
-func CrawlParallelMutex(url string, f fakeFetcher, r *Record) {
-	if r.Visited(url) {
+func CrawlParallelMutex(url string, fetcher fakeFetcher, record *Record) {
+	if record.Visited(url) {
 		return
 	}
-	body, urls, err := f.Fetch(url)
+	body, urls, err := fetcher.Fetch(url)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -81,7 +81,7 @@ func CrawlParallelMutex(url string, f fakeFetcher, r *Record) {
 		tasks.Add(1)
 		go func(url string) {
 			defer tasks.Done()
-			CrawlParallelMutex(url, f, r)
+			CrawlParallelMutex(url, fetcher, record)
 		}(url)
 	}
 	tasks.Wait()
