@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
 
 type Fetcher interface {
@@ -29,7 +30,6 @@ func (f fakeFetcher) Fetch(url string) (string, []string, error) {
 //////////////////////////////////////////////////
 
 // implementation 1, single goroutine
-
 func CrawlSerial(url string, fetcher fakeFetcher, fetched map[string]bool) {
 	if _, ok := fetched[url]; ok {
 		return
@@ -39,12 +39,52 @@ func CrawlSerial(url string, fetcher fakeFetcher, fetched map[string]bool) {
 	if err != nil {
 		fmt.Println(err)
 		return
+	} else {
+		fmt.Println("found:", url, body)
 	}
-	fmt.Printf("found: %s %q\n", url, body)
 	for _, u := range urls {
 		CrawlSerial(u, fetcher, fetched)
 	}
 	return
+}
+
+//implementaion 2, parallel with mutex and waitgroup
+type Record struct {
+	mutex   sync.Mutex
+	fetched map[string]bool
+}
+
+func (r *Record) Visited(url string) bool {
+	defer r.mutex.Unlock()
+	r.mutex.Lock()
+	if _, ok := r.fetched[url]; ok {
+		return true
+	} else {
+		r.fetched[url] = true
+		return false
+	}
+}
+
+func CrawlParallelMutex(url string, f fakeFetcher, r *Record) {
+	if r.Visited(url) {
+		return
+	}
+	body, urls, err := f.Fetch(url)
+	if err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		fmt.Println("found:", url, body)
+	}
+	var tasks sync.WaitGroup
+	for _, url := range urls {
+		tasks.Add(1)
+		go func(url string) {
+			defer tasks.Done()
+			CrawlParallelMutex(url, f, r)
+		}(url)
+	}
+	tasks.Wait()
 }
 
 func main() {
@@ -80,5 +120,10 @@ func main() {
 			},
 		},
 	}
+
+	fmt.Println("==========Serial Crawler=================")
 	CrawlSerial("https://golang.org/", f, map[string]bool{})
+
+	fmt.Println("==========Parallel Crawler With Mutex=================")
+	CrawlParallelMutex("https://golang.org/", f, &Record{sync.Mutex{}, map[string]bool{}})
 }
