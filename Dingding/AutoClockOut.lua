@@ -11,9 +11,15 @@ if flag ~= 0 then
 end
 
 --开启wifi
-setWifiEnable(true);
-toast("开启wifi", 3);
-mSleep(20000);
+-- setWifiEnable(true);
+-- toast("开启wifi", 3);
+-- mSleep(20000);
+
+
+--返回桌面并打开钉钉
+pressHomeKey();
+toast("返回桌面", 3);
+mSleep(2000)
 
 --点击工作栏
 tap(360, 1226)
@@ -59,7 +65,8 @@ end
 
 
 -- 关闭wifi, 锁定屏幕并退出
-setWifiEnable(false);
-toast("关闭wifi", 3);
+-- setWifiEnable(false);
+-- toast("关闭wifi", 3);
+
 lockDevice(); 
 lua_exit();
