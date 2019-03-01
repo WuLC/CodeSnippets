@@ -47,7 +47,6 @@ for i= 1, 4 do
 		mSleep(sleep_time)
 		moveTo(667, 1170, 662,  150)
 		moveTo(667, 1170, 662,  150)
-		tap(564, 1235) --收藏
 		mSleep(sleep_time)
 		tap(42,  112) -- 返回
 	end
@@ -76,12 +75,12 @@ for i= 1, 8 do
 		mSleep(video_sleep_time)
 		moveTo(667, 1170, 662,  150)
 		moveTo(667, 1170, 662,  150)
-		tap(564, 1235) --收藏
+		tap(367,  248) --视频过短情况，重新播放
 		mSleep(video_sleep_time)
 		tap(42,  112) -- 返回
 	end
 end
-
+mSleep(sleep_time)
 
 
 -- 关闭wifi
