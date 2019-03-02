@@ -37,7 +37,7 @@ end
 -------------------------------------------------
 tap(362, 1215)
 mSleep(interval_sleep_time)
-passage_sleep_time = 30000
+passage_sleep_time = 80000
 right_prob = 0.6
 
 if math.random() < right_prob then
@@ -49,7 +49,7 @@ mSleep(interval_sleep_time)
 
 channels = {38,179,  181,189,  289,191,  421,186, 532,191}
 passages = {493,677,  529,921,  526,1087}
-for i= 1, 4 do
+for i= 1, 5 do
 	tap(channels[i*2-1],  channels[i*2])
 	mSleep(interval_sleep_time)
 	for j=1, 3 do
