@@ -1,5 +1,6 @@
 require "TSLib"
 
+
 --解锁屏幕
 flag = deviceIsLock(); 
 if flag ~= 0 then
@@ -11,32 +12,42 @@ end
 --toast("开启wifi", 3);
 --mSleep(20000);
 
+-- 随机数种子
+math.randomseed(os.time())
+
+interval_sleep_time = 5000  -- time between clicks
 
 --返回桌面并打开app
 pressHomeKey();
 toast("返回桌面", 3);
-mSleep(2000)
-
+mSleep(interval_sleep_time)
 if multiColor({{  219, 1145, 0xd20200}}) == true then
 	tap(219, 1145)
-	mSleep(10000)
-	tap(42,  112) -- 返回
+	mSleep(interval_sleep_time)
+	tap(42,  112) -- 从之前浏览的内容返回
+	mSleep(interval_sleep_time)
 else
 	lua_exit() -- 避免点到其他东西
 end
 
+
 -------------------------------------------------
--- 点击文章栏，恢复频道栏，并分别点击四个频道
--- 每个频道浏览三篇文章
+-- 点击文章栏，根据概率向左滑或向右滑频道栏
+-- 并分别点击五个频道，每个频道浏览三篇文章
 -------------------------------------------------
-interval_sleep_time = 10000  -- time between clicks
-passage_sleep_time = 30000
 tap(362, 1215)
-for i=1, 3 do
+mSleep(interval_sleep_time)
+passage_sleep_time = 30000
+right_prob = 0.6
+
+if math.random() < right_prob then
+	moveTo(602,  192, 27,  190)
+else
 	moveTo(27,  190, 701,  192)
 end
+mSleep(interval_sleep_time)
 
-channels = {38,179,  181,189,  289,191,  421,186}
+channels = {38,179,  181,189,  289,191,  421,186, 532,191}
 passages = {493,677,  529,921,  526,1087}
 for i= 1, 4 do
 	tap(channels[i*2-1],  channels[i*2])
@@ -54,13 +65,16 @@ end
 
 
 -------------------------------------------------
--- 点击视频栏，恢复频道栏，并分别点击四个频道
--- 每个频道浏览三篇文章
+-- 点击视频栏，根据概率向左滑或向右滑频道栏
+-- 并分别点击五个频道，每个频道浏览三个视频
 -------------------------------------------------
 tap(504, 1214)
-for i=1, 3 do
+if math.random() < right_prob then
+	moveTo(602,  192, 27,  190)
+else
 	moveTo(27,  190, 701,  192)
 end
+mSleep(interval_sleep_time)
 
 video_sleep_time = 200000
 videos = {159,625,  96,913,  545,1139}
