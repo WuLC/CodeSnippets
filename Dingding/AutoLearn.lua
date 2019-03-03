@@ -2,6 +2,7 @@ require "TSLib"
 
 math.randomseed(os.time())
 
+
 function unlock_device()
 	flag = deviceIsLock(); 
 	if flag ~= 0 then
@@ -81,9 +82,18 @@ function sign_out(interval_sleep_time)
 end
 
 
+function long_sleep(time)
+	curr_time = os.time()
+	while (curr_time + time > os.time()) -- unix timestamp
+	do
+		mSleep(10000)
+	end
+end
+
+
 -------------------------------------------------
 -- 点击文章栏，根据概率向左滑或向右滑频道栏
--- 随机点击三个频道，每个频道浏览三篇文章
+-- 随机点击三个频道，每个频道浏览两篇文章
 -------------------------------------------------
 function read_passages(channels, passages, right_prob, interval_sleep_time, passage_sleep_time)
 	tap(362, 1215)
@@ -100,12 +110,13 @@ function read_passages(channels, passages, right_prob, interval_sleep_time, pass
 		c = math.random(1, 5)
 		tap(channels[c*2-1],  channels[c*2])
 		mSleep(interval_sleep_time)
-		for j=1, 3 do
-			tap(passages[j*2-1], passages[j*2])
-			mSleep(passage_sleep_time)
+		for j=1, 2 do
+			c = math.random(1, 3)
+			tap(passages[c*2-1], passages[c*2])
+			long_sleep(passage_sleep_time)
 			moveTo(667, 1170, 662,  150)
 			moveTo(667, 1170, 662,  150)
-			mSleep(passage_sleep_time)
+			long_sleep(passage_sleep_time)
 			tap(42,  112) -- 返回
 			mSleep(interval_sleep_time)
 		end
@@ -115,9 +126,9 @@ end
 
 -------------------------------------------------
 -- 点击视频栏，根据概率向左滑或向右滑频道栏
--- 并分别点击五个频道，每个频道浏览三个视频
+-- 随机点击三个频道，每个频道浏览两个视频
 -------------------------------------------------
-function watch_video(chnnels, videos, right_prob, interval_sleep_time, video_sleep_time)
+function watch_video(channels, videos, right_prob, interval_sleep_time, video_sleep_time)
 	tap(504, 1214)
 	if math.random() < right_prob then
 		moveTo(602,  192, 27,  190)
@@ -126,16 +137,18 @@ function watch_video(chnnels, videos, right_prob, interval_sleep_time, video_sle
 	end
 	mSleep(interval_sleep_time)
 
-	for i= 1, 4 do
-		tap(518,  195)
+	for i= 1, 3 do
+		c = math.random(1, 5)
+		tap(channels[c*2-1],  channels[c*2])
 		mSleep(interval_sleep_time)
-		for j=1, 3 do
-			tap(videos[j*2-1], videos[j*2])
-			mSleep(video_sleep_time)
+		for j= 1, 2 do
+			c = math.random(1, 3)
+			tap(videos[c*2-1], videos[c*2])
+			long_sleep(video_sleep_time)
 			moveTo(667, 1170, 662,  150)
 			moveTo(667, 1170, 662,  150)
 			tap(367,  248) --视频过短情况，重新播放
-			mSleep(video_sleep_time)
+			long_sleep(video_sleep_time)
 			tap(42,  112) -- 返回
 			mSleep(interval_sleep_time)
 		end
@@ -143,16 +156,16 @@ function watch_video(chnnels, videos, right_prob, interval_sleep_time, video_sle
 end
 
 
-interval_sleep_time = 5000  -- time between clicks
-passage_sleep_time = 150000
-video_sleep_time =   200000
+
+interval_sleep_time = 5000  -- ms
+passage_sleep_time = 150 	-- s
+video_sleep_time =   300 	-- s
 channel_locations = {38,179,  181,189,  289,191,  421,186, 532,191}
 passage_locations = {493,677,  529,921,  526,1087}
 videos_locations = {159,625,  96,913,  545,1139}
 right_prob = 0.6
 user = "XXXXXXXX"
 passwd = "XXXXXXXXX"
-
 
 
 -- 执行流程
